@@ -1,5 +1,5 @@
 from langgraph.prebuilt import create_react_agent as create_agent
-from model.factory import chat_model
+from model.factory import get_chat_model
 from utils.prompt_loader import load_system_prompts
 from agent.tools.agent_tools import (rag_summarize, get_weather, get_user_location, get_user_id,
                                      get_current_month, fetch_external_data, fill_context_for_report)
@@ -7,6 +7,9 @@ from agent.tools.agent_tools import (rag_summarize, get_weather, get_user_locati
 
 class ReactAgent:
     def __init__(self):
+        chat_model = get_chat_model()
+        if chat_model is None:
+            raise RuntimeError("请在环境变量中设置 DASHSCOPE_API_KEY")
         self.agent = create_agent(
             model=chat_model,
             tools=[rag_summarize, get_weather, get_user_location, get_user_id,
