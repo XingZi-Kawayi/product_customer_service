@@ -24,16 +24,25 @@ class RagSummarizeService(object):
         self.prompt_text = load_rag_prompts()
         self.prompt_template = PromptTemplate.from_template(self.prompt_text)
         self.model = get_chat_model()
-        self.chain = self._init_chain()
+        self.chain = None
 
     def _init_chain(self):
+        if self.model is None:
+            return None
         chain = self.prompt_template | print_prompt | self.model | StrOutputParser()
         return chain
+
+    def get_chain(self):
+        if self.chain is None:
+            self.chain = self._init_chain()
+        return self.chain
 
     def retriever_docs(self, query: str) -> list[Document]:
         return self.retriever.invoke(query)
 
     def rag_summarize(self, query: str) -> str:
+        if self.get_chain() is None:
+            return "请在环境变量中设置 DASHSCOPE_API_KEY"
 
         context_docs = self.retriever_docs(query)
 
