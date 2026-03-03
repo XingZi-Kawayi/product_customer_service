@@ -37,19 +37,27 @@ st.markdown("""
     .stChatMessage {
         border-radius: 12px !important;
     }
+    .sidebar-section {
+        margin-bottom: 1.5rem;
+    }
     .sidebar-header {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: 600;
         color: #6B7280;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 0.8rem;
-        padding-left: 0.5rem;
+        margin-bottom: 0.6rem;
+        padding-left: 0.3rem;
     }
-    .file-nav-item {
-        padding: 0.6rem 0.8rem;
+    .sidebar-divider {
+        border: none;
+        border-top: 1px solid #E5E7EB;
+        margin: 1rem 0;
+    }
+    .nav-item {
+        padding: 0.7rem 0.8rem;
         border-radius: 8px;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.3rem;
         cursor: pointer;
         transition: all 0.15s ease;
         font-size: 0.95rem;
@@ -59,11 +67,11 @@ st.markdown("""
         text-align: left;
         width: 100%;
     }
-    .file-nav-item:hover {
+    .nav-item:hover {
         background-color: #F3F4F6;
         color: #111827;
     }
-    .file-nav-item.active {
+    .nav-item.active {
         background-color: #EFF6FF;
         color: #0078D4;
         font-weight: 500;
@@ -90,25 +98,6 @@ st.markdown("""
     .doc-content strong { color: #111827; }
     [data-testid="stSidebar"] {
         background-color: #F9FAFB;
-    }
-    .nav-tab {
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        border: none;
-        cursor: pointer;
-    }
-    .nav-tab.active {
-        background-color: #0078D4;
-        color: white;
-    }
-    .nav-tab:not(.active) {
-        background-color: #F3F4F6;
-        color: #374151;
-    }
-    .nav-tab:hover:not(.active) {
-        background-color: #E5E7EB;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -167,24 +156,55 @@ def get_file_icon(filename):
     else:
         return '📄'
 
-if "current_page" not in st.session_state:
-    st.session_state["current_page"] = "chat"
+if "current_view" not in st.session_state:
+    st.session_state["current_view"] = "chat"
 
-col1, col2, col3, col4 = st.columns([1, 1, 2, 2])
-with col1:
-    if st.button("💬 智能客服", use_container_width=True, type="primary" if st.session_state["current_page"] == "chat" else "secondary"):
-        st.session_state["current_page"] = "chat"
-        st.rerun()
-with col2:
-    if st.button("📚 产品知识库", use_container_width=True, type="primary" if st.session_state["current_page"] == "docs" else "secondary"):
-        st.session_state["current_page"] = "docs"
-        st.rerun()
-
-st.markdown('<hr class="divider-custom">', unsafe_allow_html=True)
+if "selected_file" not in st.session_state:
+    st.session_state["selected_file"] = None
 
 knowledge_files = get_knowledge_files()
 
-if st.session_state["current_page"] == "chat":
+with st.sidebar:
+    st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
+    
+    if st.button(
+        "💬 智能客服",
+        key="nav_chat",
+        use_container_width=True,
+        type="primary" if st.session_state["current_view"] == "chat" else "secondary"
+    ):
+        st.session_state["current_view"] = "chat"
+        st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
+    
+    st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-header">产品知识库</div>', unsafe_allow_html=True)
+    
+    if knowledge_files:
+        for filename in knowledge_files:
+            is_selected = st.session_state["current_view"] == "docs" and st.session_state.get("selected_file") == filename
+            button_key = f"file_{filename}"
+            
+            label = f"{get_file_icon(filename)} {filename.replace('.txt', '').replace('.pdf', '')}"
+            
+            if st.button(
+                label,
+                key=button_key,
+                use_container_width=True,
+                type="secondary"
+            ):
+                st.session_state["current_view"] = "docs"
+                st.session_state["selected_file"] = filename
+                st.rerun()
+    else:
+        st.info("暂无知识库文件")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+if st.session_state["current_view"] == "chat":
     st.markdown('<h1 class="main-title">🤖 智扫通机器人智能客服</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">您的扫地机器人专属智能助手</p>', unsafe_allow_html=True)
     
@@ -219,33 +239,6 @@ if st.session_state["current_page"] == "chat":
         st.rerun()
 
 else:
-    st.markdown('<h1 class="main-title">📚 产品知识库</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">查看扫地机器人产品相关文档</p>', unsafe_allow_html=True)
-    
-    if "selected_file" not in st.session_state and knowledge_files:
-        st.session_state["selected_file"] = knowledge_files[0]
-    
-    with st.sidebar:
-        st.markdown('<div class="sidebar-header">文档列表</div>', unsafe_allow_html=True)
-        
-        if knowledge_files:
-            for filename in knowledge_files:
-                is_selected = st.session_state.get("selected_file") == filename
-                button_key = f"file_{filename}"
-                
-                label = f"{get_file_icon(filename)} {filename.replace('.txt', '').replace('.pdf', '')}"
-                
-                if st.button(
-                    label,
-                    key=button_key,
-                    use_container_width=True,
-                    type="secondary"
-                ):
-                    st.session_state["selected_file"] = filename
-                    st.rerun()
-        else:
-            st.info("暂无知识库文件")
-    
     if st.session_state.get("selected_file"):
         filename = st.session_state["selected_file"]
         display_name = filename.replace('.txt', '').replace('.pdf', '')
@@ -253,7 +246,7 @@ else:
         content = read_file_content(filename)
         
         if content and "PDF 文件预览功能开发中" not in content:
-            st.markdown(f"### {get_file_icon(filename)} {display_name}")
+            st.markdown(f'<h1 class="main-title">{get_file_icon(filename)} {display_name}</h1>', unsafe_allow_html=True)
             st.markdown('<div class="doc-content">', unsafe_allow_html=True)
             md_content = text_to_markdown(content)
             st.markdown(md_content)
