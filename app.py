@@ -88,13 +88,27 @@ st.markdown("""
     .doc-content ul, .doc-content ol { margin-left: 1.5rem; margin-bottom: 1rem; }
     .doc-content li { margin-bottom: 0.5rem; }
     .doc-content strong { color: #111827; }
-    .view-mode-toggle {
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-    }
     [data-testid="stSidebar"] {
         background-color: #F9FAFB;
+    }
+    .nav-tab {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+    .nav-tab.active {
+        background-color: #0078D4;
+        color: white;
+    }
+    .nav-tab:not(.active) {
+        background-color: #F3F4F6;
+        color: #374151;
+    }
+    .nav-tab:hover:not(.active) {
+        background-color: #E5E7EB;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -153,90 +167,98 @@ def get_file_icon(filename):
     else:
         return '📄'
 
-with st.sidebar:
-    st.markdown('<div class="sidebar-header">产品知识库</div>', unsafe_allow_html=True)
-    
-    knowledge_files = get_knowledge_files()
-    
-    if knowledge_files:
-        if "selected_file" not in st.session_state:
-            st.session_state["selected_file"] = None
-        
-        for filename in knowledge_files:
-            is_selected = st.session_state.get("selected_file") == filename
-            button_key = f"file_{filename}"
-            
-            label = f"{get_file_icon(filename)} {filename.replace('.txt', '').replace('.pdf', '')}"
-            
-            if st.button(
-                label,
-                key=button_key,
-                use_container_width=True,
-                type="secondary"
-            ):
-                st.session_state["selected_file"] = filename
-                st.rerun()
-            
-            if is_selected:
-                st.markdown(f"""
-                <style>
-                    [data-testid="stBaseButton-secondary"][key="file_{filename}"] {{
-                        background-color: #EFF6FF !important;
-                        color: #0078D4 !important;
-                        font-weight: 500 !important;
-                    }}
-                </style>
-                """, unsafe_allow_html=True)
-    else:
-        st.info("暂无知识库文件")
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "chat"
 
-st.markdown('<h1 class="main-title">🤖 智扫通机器人智能客服</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">您的扫地机器人专属智能助手</p>', unsafe_allow_html=True)
+col1, col2, col3, col4 = st.columns([1, 1, 2, 2])
+with col1:
+    if st.button("💬 智能客服", use_container_width=True, type="primary" if st.session_state["current_page"] == "chat" else "secondary"):
+        st.session_state["current_page"] = "chat"
+        st.rerun()
+with col2:
+    if st.button("📚 产品知识库", use_container_width=True, type="primary" if st.session_state["current_page"] == "docs" else "secondary"):
+        st.session_state["current_page"] = "docs"
+        st.rerun()
+
 st.markdown('<hr class="divider-custom">', unsafe_allow_html=True)
 
-if st.session_state.get("selected_file"):
-    filename = st.session_state["selected_file"]
-    display_name = filename.replace('.txt', '').replace('.pdf', '')
+knowledge_files = get_knowledge_files()
+
+if st.session_state["current_page"] == "chat":
+    st.markdown('<h1 class="main-title">🤖 智扫通机器人智能客服</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">您的扫地机器人专属智能助手</p>', unsafe_allow_html=True)
     
-    st.markdown(f"### 📖 {display_name}")
-    content = read_file_content(filename)
+    if "agent" not in st.session_state:
+        st.session_state["agent"] = ReactAgent()
     
-    if content and "PDF 文件预览功能开发中" not in content:
-        st.markdown('<div class="doc-content">', unsafe_allow_html=True)
-        md_content = text_to_markdown(content)
-        st.markdown(md_content)
-        st.markdown('</div>', unsafe_allow_html=True)
-    elif "PDF 文件预览功能开发中" in content:
-        st.info(content)
+    if "message" not in st.session_state:
+        st.session_state["message"] = []
     
-    st.markdown("---")
-
-if "agent" not in st.session_state:
-    st.session_state["agent"] = ReactAgent()
-
-if "message" not in st.session_state:
-    st.session_state["message"] = []
-
-for message in st.session_state["message"]:
-    st.chat_message(message["role"]).write(message["content"])
-
-prompt = st.chat_input("请输入您的问题...")
-
-if prompt:
-    st.chat_message("user").write(prompt)
-    st.session_state["message"].append({"role": "user", "content": prompt})
-
-    response_messages = []
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
+    for message in st.session_state["message"]:
+        st.chat_message(message["role"]).write(message["content"])
+    
+    prompt = st.chat_input("请输入您的问题...")
+    
+    if prompt:
+        st.chat_message("user").write(prompt)
+        st.session_state["message"].append({"role": "user", "content": prompt})
         
-        for chunk in st.session_state["agent"].execute_stream(prompt):
-            response_messages.append(chunk)
-            full_response += chunk
-            message_placeholder.markdown(full_response + "▌")
+        response_messages = []
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = ""
+            
+            for chunk in st.session_state["agent"].execute_stream(prompt):
+                response_messages.append(chunk)
+                full_response += chunk
+                message_placeholder.markdown(full_response + "▌")
+            
+            message_placeholder.markdown(full_response)
         
-        message_placeholder.markdown(full_response)
+        st.session_state["message"].append({"role": "assistant", "content": full_response})
+        st.rerun()
+
+else:
+    st.markdown('<h1 class="main-title">📚 产品知识库</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">查看扫地机器人产品相关文档</p>', unsafe_allow_html=True)
     
-    st.session_state["message"].append({"role": "assistant", "content": full_response})
-    st.rerun()
+    if "selected_file" not in st.session_state and knowledge_files:
+        st.session_state["selected_file"] = knowledge_files[0]
+    
+    with st.sidebar:
+        st.markdown('<div class="sidebar-header">文档列表</div>', unsafe_allow_html=True)
+        
+        if knowledge_files:
+            for filename in knowledge_files:
+                is_selected = st.session_state.get("selected_file") == filename
+                button_key = f"file_{filename}"
+                
+                label = f"{get_file_icon(filename)} {filename.replace('.txt', '').replace('.pdf', '')}"
+                
+                if st.button(
+                    label,
+                    key=button_key,
+                    use_container_width=True,
+                    type="secondary"
+                ):
+                    st.session_state["selected_file"] = filename
+                    st.rerun()
+        else:
+            st.info("暂无知识库文件")
+    
+    if st.session_state.get("selected_file"):
+        filename = st.session_state["selected_file"]
+        display_name = filename.replace('.txt', '').replace('.pdf', '')
+        
+        content = read_file_content(filename)
+        
+        if content and "PDF 文件预览功能开发中" not in content:
+            st.markdown(f"### {get_file_icon(filename)} {display_name}")
+            st.markdown('<div class="doc-content">', unsafe_allow_html=True)
+            md_content = text_to_markdown(content)
+            st.markdown(md_content)
+            st.markdown('</div>', unsafe_allow_html=True)
+        elif "PDF 文件预览功能开发中" in content:
+            st.info(content)
+    else:
+        st.info("👈 请从左侧选择一个文档查看")
