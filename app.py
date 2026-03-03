@@ -4,7 +4,7 @@ import os
 from utils.path_tool import get_abs_path
 from utils.config_handler import chroma_conf
 import re
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 st.set_page_config(
     page_title="智扫通 - 机器人智能客服",
