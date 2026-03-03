@@ -23,19 +23,20 @@ if prompt:
     st.chat_message("user").write(prompt)
     st.session_state["message"].append({"role": "user", "content": prompt})
 
-    response_messages = []
-    with st.spinner("智能客服思考中..."):
-        res_stream = st.session_state["agent"].execute_stream(prompt)
+        response_messages = []
+        with st.spinner("智能客服思考中..."):
+            res_stream = st.session_state["agent"].execute_stream(prompt)
 
-        def capture(generator, cache_list):
+            def capture(generator, cache_list):
 
-            for chunk in generator:
-                cache_list.append(chunk)
+                for chunk in generator:
+                    cache_list.append(chunk)
 
-                for char in chunk:
-                    time.sleep(0.01)
-                    yield char
+                    for char in chunk:
+                        time.sleep(0.01)
+                        yield char
 
-        st.chat_message("assistant").write_stream(capture(res_stream, response_messages))
-        st.session_state["message"].append({"role": "assistant", "content": response_messages[-1]})
-        st.rerun()
+            st.chat_message("assistant").write_stream(capture(res_stream, response_messages))
+            full_response = "".join(response_messages)
+            st.session_state["message"].append({"role": "assistant", "content": full_response})
+            st.rerun()
