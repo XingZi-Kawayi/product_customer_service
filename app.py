@@ -3,6 +3,7 @@ from agent.react_agent import ReactAgent
 import os
 from utils.path_tool import get_abs_path
 from utils.config_handler import chroma_conf
+import re
 
 st.set_page_config(
     page_title="智扫通 - 机器人智能客服",
@@ -14,49 +15,86 @@ st.set_page_config(
 st.markdown("""
 <style>
     .main-title {
-        font-size: 2.5rem;
-        font-weight: 800;
+        font-size: 2.2rem;
+        font-weight: 700;
         background: linear-gradient(135deg, #0078D4 0%, #00BCF2 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        text-align: center;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
     }
     .subtitle {
-        text-align: center;
         color: #6B7280;
-        font-size: 1.1rem;
-        margin-bottom: 2rem;
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
     }
     .divider-custom {
-        height: 3px;
-        background: linear-gradient(90deg, transparent, #0078D4, transparent);
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #E5E7EB, transparent);
         border: none;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
     }
     .stChatMessage {
         border-radius: 12px !important;
     }
-    .sidebar-title {
-        font-size: 1.2rem;
-        font-weight: 700;
+    .sidebar-header {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.8rem;
+        padding-left: 0.5rem;
+    }
+    .file-nav-item {
+        padding: 0.6rem 0.8rem;
+        border-radius: 8px;
+        margin-bottom: 0.25rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        font-size: 0.95rem;
+        color: #374151;
+        border: none;
+        background: transparent;
+        text-align: left;
+        width: 100%;
+    }
+    .file-nav-item:hover {
+        background-color: #F3F4F6;
+        color: #111827;
+    }
+    .file-nav-item.active {
+        background-color: #EFF6FF;
         color: #0078D4;
+        font-weight: 500;
+    }
+    .doc-content {
+        background: #FFFFFF;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        line-height: 1.8;
+    }
+    .doc-content h1, .doc-content h2, .doc-content h3 {
+        margin-top: 1.5rem;
+        margin-bottom: 0.8rem;
+        font-weight: 600;
+        color: #111827;
+    }
+    .doc-content h1 { font-size: 1.8rem; }
+    .doc-content h2 { font-size: 1.4rem; border-bottom: 1px solid #E5E7EB; padding-bottom: 0.5rem; }
+    .doc-content h3 { font-size: 1.2rem; }
+    .doc-content p { margin-bottom: 1rem; color: #374151; }
+    .doc-content ul, .doc-content ol { margin-left: 1.5rem; margin-bottom: 1rem; }
+    .doc-content li { margin-bottom: 0.5rem; }
+    .doc-content strong { color: #111827; }
+    .view-mode-toggle {
+        display: flex;
+        gap: 0.5rem;
         margin-bottom: 1rem;
     }
-    .file-item {
-        padding: 0.5rem;
-        border-radius: 8px;
-        margin-bottom: 0.3rem;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-    .file-item:hover {
-        background-color: #E8F4FD;
-    }
-    .file-item.selected {
-        background-color: #D0E8FF;
-        font-weight: 600;
+    [data-testid="stSidebar"] {
+        background-color: #F9FAFB;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -84,9 +122,39 @@ def read_file_content(filename):
         return f"读取文件失败: {str(e)}"
     return ""
 
+def text_to_markdown(text):
+    lines = text.split('\n')
+    processed = []
+    for line in lines:
+        line = line.rstrip()
+        if re.match(r'^#{1,6}\s', line):
+            processed.append(line)
+        elif re.match(r'^\s*[0-9]+\.\s', line):
+            processed.append(line)
+        elif re.match(r'^\s*[*-]\s', line):
+            processed.append(line)
+        elif line.strip() and not line.startswith(' '):
+            processed.append(line)
+        else:
+            processed.append(line)
+    return '\n'.join(processed)
+
+def get_file_icon(filename):
+    if '故障' in filename or '排除' in filename:
+        return '🔧'
+    elif '保养' in filename or '维护' in filename:
+        return '✨'
+    elif '选购' in filename or '指南' in filename:
+        return '📋'
+    elif '100问' in filename:
+        return '❓'
+    elif '.pdf' in filename:
+        return '📄'
+    else:
+        return '📄'
+
 with st.sidebar:
-    st.markdown('<p class="sidebar-title">📚 产品知识库</p>', unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown('<div class="sidebar-header">产品知识库</div>', unsafe_allow_html=True)
     
     knowledge_files = get_knowledge_files()
     
@@ -94,24 +162,31 @@ with st.sidebar:
         if "selected_file" not in st.session_state:
             st.session_state["selected_file"] = None
         
-        st.markdown("**选择文件查看:**")
         for filename in knowledge_files:
             is_selected = st.session_state.get("selected_file") == filename
             button_key = f"file_{filename}"
             
+            label = f"{get_file_icon(filename)} {filename.replace('.txt', '').replace('.pdf', '')}"
+            
             if st.button(
-                f"📄 {filename}",
+                label,
                 key=button_key,
                 use_container_width=True,
-                type="primary" if is_selected else "secondary"
+                type="secondary"
             ):
                 st.session_state["selected_file"] = filename
                 st.rerun()
-        
-        st.markdown("---")
-        
-        if st.session_state.get("selected_file"):
-            st.markdown(f"**📖 当前查看:** {st.session_state['selected_file']}")
+            
+            if is_selected:
+                st.markdown(f"""
+                <style>
+                    [data-testid="stBaseButton-secondary"][key="file_{filename}"] {{
+                        background-color: #EFF6FF !important;
+                        color: #0078D4 !important;
+                        font-weight: 500 !important;
+                    }}
+                </style>
+                """, unsafe_allow_html=True)
     else:
         st.info("暂无知识库文件")
 
@@ -120,9 +195,20 @@ st.markdown('<p class="subtitle">您的扫地机器人专属智能助手</p>', u
 st.markdown('<hr class="divider-custom">', unsafe_allow_html=True)
 
 if st.session_state.get("selected_file"):
-    with st.expander(f"📖 查看: {st.session_state['selected_file']}", expanded=True):
-        content = read_file_content(st.session_state["selected_file"])
-        st.text_area("", content, height=400, disabled=True)
+    filename = st.session_state["selected_file"]
+    display_name = filename.replace('.txt', '').replace('.pdf', '')
+    
+    st.markdown(f"### 📖 {display_name}")
+    content = read_file_content(filename)
+    
+    if content and "PDF 文件预览功能开发中" not in content:
+        st.markdown('<div class="doc-content">', unsafe_allow_html=True)
+        md_content = text_to_markdown(content)
+        st.markdown(md_content)
+        st.markdown('</div>', unsafe_allow_html=True)
+    elif "PDF 文件预览功能开发中" in content:
+        st.info(content)
+    
     st.markdown("---")
 
 if "agent" not in st.session_state:
