@@ -14,25 +14,26 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    .main-title {
-        font-size: 2.2rem;
-        font-weight: 700;
+    .app-header {
         background: linear-gradient(135deg, #0078D4 0%, #00BCF2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 0.3rem;
-    }
-    .subtitle {
-        color: #6B7280;
-        font-size: 1rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
         margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,120,212,0.15);
     }
-    .divider-custom {
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #E5E7EB, transparent);
-        border: none;
-        margin-bottom: 1.5rem;
+    .app-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: white;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .app-subtitle {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.9);
+        margin: 0.2rem 0 0 0;
     }
     .stChatMessage {
         border-radius: 12px !important;
@@ -96,6 +97,12 @@ st.markdown("""
     .doc-content ul, .doc-content ol { margin-left: 1.5rem; margin-bottom: 1rem; }
     .doc-content li { margin-bottom: 0.5rem; }
     .doc-content strong { color: #111827; }
+    .doc-page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 0.5rem;
+    }
     [data-testid="stSidebar"] {
         background-color: #F9FAFB;
     }
@@ -204,10 +211,14 @@ with st.sidebar:
     
     st.markdown('</div>', unsafe_allow_html=True)
 
+st.markdown("""
+<div class="app-header">
+    <div class="app-title">🤖 智扫通机器人智能客服</div>
+    <div class="app-subtitle">您的扫地机器人专属智能助手</div>
+</div>
+""", unsafe_allow_html=True)
+
 if st.session_state["current_view"] == "chat":
-    st.markdown('<h1 class="main-title">🤖 智扫通机器人智能客服</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">您的扫地机器人专属智能助手</p>', unsafe_allow_html=True)
-    
     if "agent" not in st.session_state:
         st.session_state["agent"] = ReactAgent()
     
@@ -246,7 +257,7 @@ else:
         content = read_file_content(filename)
         
         if content and "PDF 文件预览功能开发中" not in content:
-            st.markdown(f'<h1 class="main-title">{get_file_icon(filename)} {display_name}</h1>', unsafe_allow_html=True)
+            st.markdown(f'<div class="doc-page-title">{get_file_icon(filename)} {display_name}</div>', unsafe_allow_html=True)
             st.markdown('<div class="doc-content">', unsafe_allow_html=True)
             md_content = text_to_markdown(content)
             st.markdown(md_content)
