@@ -4,6 +4,7 @@ import os
 from utils.path_tool import get_abs_path
 from utils.config_handler import chroma_conf
 import re
+from PyPDF2 import PdfReader
 
 st.set_page_config(
     page_title="智扫通 - 机器人智能客服",
@@ -103,6 +104,13 @@ st.markdown("""
         color: #111827;
         margin-bottom: 0.5rem;
     }
+    .pdf-info {
+        background-color: #FFFBEB;
+        border-left: 4px solid #F59E0B;
+        padding: 0.75rem 1rem;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 1rem;
+    }
     [data-testid="stSidebar"] {
         background-color: #F9FAFB;
     }
@@ -119,18 +127,35 @@ def get_knowledge_files():
                 files.append(filename)
     return sorted(files)
 
+def read_pdf_content(filepath):
+    try:
+        reader = PdfReader(filepath)
+        text_content = []
+        num_pages = len(reader.pages)
+        
+        for page_num in range(num_pages):
+            page = reader.pages[page_num]
+            text = page.extract_text()
+            if text.strip():
+                text_content.append(f"\n--- 第 {page_num + 1} 页 ---\n")
+                text_content.append(text)
+        
+        return "\n".join(text_content), num_pages
+    except Exception as e:
+        return f"读取 PDF 文件失败: {str(e)}", 0
+
 def read_file_content(filename):
     data_path = get_abs_path(chroma_conf["data_path"])
     file_path = os.path.join(data_path, filename)
     try:
         if filename.endswith('.txt'):
             with open(file_path, 'r', encoding='utf-8') as f:
-                return f.read()
+                return f.read(), None
         elif filename.endswith('.pdf'):
-            return "📄 PDF 文件预览功能开发中..."
+            return read_pdf_content(file_path)
     except Exception as e:
-        return f"读取文件失败: {str(e)}"
-    return ""
+        return f"读取文件失败: {str(e)}", None
+    return "", None
 
 def text_to_markdown(text):
     lines = text.split('\n')
@@ -254,15 +279,19 @@ else:
         filename = st.session_state["selected_file"]
         display_name = filename.replace('.txt', '').replace('.pdf', '')
         
-        content = read_file_content(filename)
+        content, extra_info = read_file_content(filename)
         
-        if content and "PDF 文件预览功能开发中" not in content:
+        if content and "读取文件失败" not in content:
             st.markdown(f'<div class="doc-page-title">{get_file_icon(filename)} {display_name}</div>', unsafe_allow_html=True)
+            
+            if filename.endswith('.pdf') and extra_info:
+                st.markdown(f'<div class="pdf-info">📄 PDF 文件，共 {extra_info} 页</div>', unsafe_allow_html=True)
+            
             st.markdown('<div class="doc-content">', unsafe_allow_html=True)
             md_content = text_to_markdown(content)
             st.markdown(md_content)
             st.markdown('</div>', unsafe_allow_html=True)
-        elif "PDF 文件预览功能开发中" in content:
-            st.info(content)
+        else:
+            st.error(content)
     else:
         st.info("👈 请从左侧选择一个文档查看")
