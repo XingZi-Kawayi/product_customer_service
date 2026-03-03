@@ -218,7 +218,8 @@ if "selected_file" not in st.session_state:
     st.session_state["selected_file"] = None
 
 if "session_id" not in st.session_state:
-    st.session_state["session_id"] = "default"
+    import uuid
+    st.session_state["session_id"] = f"session_{uuid.uuid4().hex[:8]}"
 
 if "memory_enabled" not in st.session_state:
     st.session_state["memory_enabled"] = True
