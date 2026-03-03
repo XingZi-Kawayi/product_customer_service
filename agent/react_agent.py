@@ -20,8 +20,8 @@ class ReactAgent:
         self.system_prompt = load_system_prompts()
         self.memory = memory_manager
 
-    def execute_stream(self, query: str, use_memory: bool = True):
-        if self.memory and use_memory:
+    def execute_stream(self, query: str):
+        if self.memory:
             messages = self.memory.get_langchain_messages(system_prompt=self.system_prompt)
             messages.append({"role": "user", "content": query})
             input_dict = {"messages": messages}

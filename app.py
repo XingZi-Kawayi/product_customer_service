@@ -115,26 +115,6 @@ st.markdown("""
     [data-testid="stSidebar"] {
         background-color: #F9FAFB;
     }
-    .memory-button {
-        padding: 0.5rem 0.8rem;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        border: 1px solid #E5E7EB;
-        background: white;
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
-    .memory-button:hover {
-        background-color: #F3F4F6;
-        border-color: #D1D5DB;
-    }
-    .memory-button.danger {
-        border-color: #FECACA;
-        color: #DC2626;
-    }
-    .memory-button.danger:hover {
-        background-color: #FEE2E2;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -221,9 +201,6 @@ if "session_id" not in st.session_state:
     import uuid
     st.session_state["session_id"] = f"session_{uuid.uuid4().hex[:8]}"
 
-if "memory_enabled" not in st.session_state:
-    st.session_state["memory_enabled"] = True
-
 knowledge_files = get_knowledge_files()
 
 with st.sidebar:
@@ -265,39 +242,6 @@ with st.sidebar:
         st.info("暂无知识库文件")
     
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
-    
-    st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-header">对话记忆</div>', unsafe_allow_html=True)
-    
-    st.session_state["memory_enabled"] = st.checkbox(
-        "启用对话记忆",
-        value=st.session_state["memory_enabled"]
-    )
-    
-    sessions = MemoryManager.list_sessions()
-    if sessions:
-        st.selectbox(
-            "选择会话",
-            options=sessions,
-            index=sessions.index(st.session_state["session_id"]) if st.session_state["session_id"] in sessions else 0,
-            key="session_id"
-        )
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🆕 新会话", use_container_width=True):
-            import uuid
-            st.session_state["session_id"] = f"session_{uuid.uuid4().hex[:8]}"
-            st.rerun()
-    
-    with col2:
-        if st.button("🗑️ 清空历史", use_container_width=True, type="secondary"):
-            MemoryManager.delete_session(st.session_state["session_id"])
-            st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("""
 <div class="app-header">
@@ -327,15 +271,14 @@ if st.session_state["current_view"] == "chat":
         st.chat_message("user").write(prompt)
         st.session_state["message"].append({"role": "user", "content": prompt})
         
-        if st.session_state["memory_enabled"]:
-            st.session_state["memory"].add_user_message(prompt)
+        st.session_state["memory"].add_user_message(prompt)
         
         response_messages = []
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
             
-            for chunk in st.session_state["agent"].execute_stream(prompt, use_memory=st.session_state["memory_enabled"]):
+            for chunk in st.session_state["agent"].execute_stream(prompt):
                 response_messages.append(chunk)
                 full_response += chunk
                 message_placeholder.markdown(full_response + "▌")
@@ -344,8 +287,7 @@ if st.session_state["current_view"] == "chat":
         
         st.session_state["message"].append({"role": "assistant", "content": full_response})
         
-        if st.session_state["memory_enabled"]:
-            st.session_state["memory"].add_ai_message(full_response)
+        st.session_state["memory"].add_ai_message(full_response)
         
         st.rerun()
 
