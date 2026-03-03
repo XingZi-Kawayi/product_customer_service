@@ -1,9 +1,6 @@
-import time
-
 import streamlit as st
 from agent.react_agent import ReactAgent
 
-# 标题
 st.title("智扫通机器人智能客服")
 st.divider()
 
@@ -16,27 +13,23 @@ if "message" not in st.session_state:
 for message in st.session_state["message"]:
     st.chat_message(message["role"]).write(message["content"])
 
-# 用户输入提示词
 prompt = st.chat_input()
 
 if prompt:
     st.chat_message("user").write(prompt)
     st.session_state["message"].append({"role": "user", "content": prompt})
 
-        response_messages = []
-        with st.spinner("智能客服思考中..."):
-            res_stream = st.session_state["agent"].execute_stream(prompt)
-
-            def capture(generator, cache_list):
-
-                for chunk in generator:
-                    cache_list.append(chunk)
-
-                    for char in chunk:
-                        time.sleep(0.01)
-                        yield char
-
-            st.chat_message("assistant").write_stream(capture(res_stream, response_messages))
-            full_response = "".join(response_messages)
-            st.session_state["message"].append({"role": "assistant", "content": full_response})
-            st.rerun()
+    response_messages = []
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
+        
+        for chunk in st.session_state["agent"].execute_stream(prompt):
+            response_messages.append(chunk)
+            full_response += chunk
+            message_placeholder.markdown(full_response + "▌")
+        
+        message_placeholder.markdown(full_response)
+    
+    st.session_state["message"].append({"role": "assistant", "content": full_response})
+    st.rerun()

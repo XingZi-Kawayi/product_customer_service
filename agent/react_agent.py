@@ -3,6 +3,7 @@ from model.factory import get_chat_model
 from utils.prompt_loader import load_system_prompts
 from agent.tools.agent_tools import (rag_summarize, get_weather, get_user_location, get_user_id,
                                      get_current_month, fetch_external_data, fill_context_for_report)
+from langchain_core.messages import AIMessageChunk
 
 
 class ReactAgent:
@@ -25,10 +26,14 @@ class ReactAgent:
             ]
         }
 
-        for chunk in self.agent.stream(input_dict, stream_mode="values", context={"report": False}):
-            latest_message = chunk["messages"][-1]
-            if latest_message.content:
-                yield latest_message.content.strip() + "\n"
+        for event in self.agent.stream(input_dict, stream_mode="updates", context={"report": False}):
+            for node_name, node_output in event.items():
+                if "messages" in node_output:
+                    for msg in node_output["messages"]:
+                        if isinstance(msg, AIMessageChunk) and msg.content:
+                            yield msg.content
+                        elif hasattr(msg, "content") and msg.content and not isinstance(msg, AIMessageChunk):
+                            yield msg.content
 
 
 if __name__ == '__main__':
