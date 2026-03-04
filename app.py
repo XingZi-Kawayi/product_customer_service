@@ -13,7 +13,7 @@ from utils.logger_handler import logger
 os.environ.setdefault('NO_PROXY', '*')
 
 st.set_page_config(
-    page_title="智扫通 - 机器人智能客服",
+    page_title="净巡者 - 机器人智能客服",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -349,8 +349,8 @@ if __name__ == "__main__":
     
     st.markdown("""
 <div class="app-header">
-    <div class="app-title">🤖 智扫通机器人智能客服</div>
-    <div class="app-subtitle">您的扫地机器人专属智能助手</div>
+    <div class="app-title">🤖 净巡者机器人智能客服</div>
+    <div class="app-subtitle">净巡者，您的扫地机器人专属智能助手</div>
 </div>
 """, unsafe_allow_html=True)
     
